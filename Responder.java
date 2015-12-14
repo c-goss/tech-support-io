@@ -25,6 +25,7 @@ public class Responder
     private ArrayList<String> defaultResponses;
     // The name of the file containing the default responses.
     private static final String FILE_OF_DEFAULT_RESPONSES = "default.txt";
+    private static final String FILE_OF_RESPONSES = "responses.txt";
     private Random randomGenerator;
 
     /**
@@ -47,19 +48,41 @@ public class Responder
      */
     public String generateResponse(HashSet<String> words)
     {
-        Iterator<String> it = words.iterator();
-        while(it.hasNext()) {
-            String word = it.next();
-            String response = responseMap.get(word);
-            if(response != null) {
-                return response;
-            }
+        Iterator<String> it = words.iterator(); //create iterator for input
+        Charset charset = Charset.forName("US-ASCII");
+        Path path = Paths.get(FILE_OF_RESPONSES);
+        String readText = "";
+        boolean continueReading = true; //sentinel for while loop
+        boolean matchFound = false;
+        String toReturn = "";
+        while(it.hasNext() && !matchFound) {   //while input has more words and match is not found
+            String word = it.next().trim();    //take the next word from input
+            //String response = responseMap.get(word);    //get associated response
+            try (BufferedReader reader = Files.newBufferedReader(path, charset)) {//try opening file
+                while (continueReading ){
+                    readText = reader.readLine().trim();
+                    if (readText == null){  //test for whether the line is empty
+                        continueReading = false;
+                    }else if (readText.equals(word)){ //test for whether match is found
+                        matchFound = true;
+                        toReturn = reader.readLine();
+                        continueReading = false;
+                    }//end if else                    
+                }//end readText == null || !matchFound || continueReading while
+            }//end try statement
+            catch(FileNotFoundException e) {
+                System.err.println("Unable to open " + FILE_OF_RESPONSES);
+            }//end FileNotFoundException catch
+            catch(IOException e) {
+                System.err.println("A problem was encountered reading " +
+                                FILE_OF_RESPONSES);
+            }//end IOException catch
+        }//end it.hasNext() && !matchFound while
+        if (!matchFound){
+            toReturn = pickDefaultResponse();
         }
-        // If we get here, none of the words from the input line was recognized.
-        // In this case we pick one of our default responses (what we say when
-        // we cannot think of anything else to say...)
-        return pickDefaultResponse();
-    }
+        return toReturn;
+    }//end 
 
     /**
      * Enter all the known keywords and their associated responses
